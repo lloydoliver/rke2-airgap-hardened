@@ -10,5 +10,5 @@ Run createconfig.sh to create required config files on a host with access to the
 mkdir -p suse/rancher
 cd suse/rancher
 
-git clone https://github.com/harrisonbc/rke2-rancher-airgap-hardened
+git clone https://github.com/harrisonbc/rke2-airgap-hardened
 
