@@ -26,8 +26,6 @@ envsubst < templates/rke2-calico-config.yaml.tmpl > rke2-calico-config.yaml
 # ssh-keygen -t rsa -b 4096
 # for i in $HOSTS; do ssh-copy-id -i -y $HOME/.ssh/id_rsa.pub root@$i; done
 
-# Create directories on the target hosts
-# for i in $HOSTS; do ssh root@$i mkdir -p ~/suse/rancher/ /etc/rancher/rke2/ /var/lib/rancher/rke2/server/manifests/ /var/lib/rancher/rke2/agent/images/ /opt/rke2/ ; done
 
 # Download RKE2 Installation Script & make executable
 curl -sfL https://get.rke2.io > ./install.sh
