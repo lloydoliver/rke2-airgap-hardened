@@ -24,7 +24,8 @@ envsubst < templates/rke2-calico-config.yaml.tmpl > rke2-calico-config.yaml
 
 # Create and distribute ssh keys
 # ssh-keygen -t rsa -b 4096
-# for i in $HOSTS; do ssh-copy-id -i -y $HOME/.ssh/id_rsa.pub root@$i; done
+ssh-keygen -q -t rsa -b 4096 -f ~/.ssh/id_rsa -N ""
+for i in $HOSTS; do ssh-copy-id -i $HOME/.ssh/id_rsa.pub root@$i; done
 
 
 # Download RKE2 Installation Script & make executable
@@ -34,4 +35,4 @@ chmod +x ./install.sh
 # Modify cluster config file for 1st Node
 sed s/server:/#\ server:/ <config.yaml >config-1st.yaml
 
-# Now run rke2-install.sh to copy files to hosts and install RKE2 
+# Now run rke2-rmc-install.sh to copy files to hosts and install RKE2 
