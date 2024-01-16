@@ -1,0 +1,42 @@
+mirrors:
+  registry.rancher.com:
+    endpoint:
+      - "https://harbor.customer.com"
+    rewrite:
+      "(.*)": "registry.rancher.com/$1"
+  docker.io:
+    endpoint:
+      - "https://harbor.customer.com"
+    rewrite:
+      "(.*)": "docker.io/$1"
+  quay.io:
+    endpoint:
+      - "https://harbor.customer.com"
+    rewrite:
+      "(.*)": "quay.io/$1"
+  gcr.io:
+    endpoint:
+      - "https://harbor.customer.com"
+    rewrite:
+      "(.*)": "gcr.io/$1"
+  k8s.gcr.io:
+    endpoint:
+      - "https://harbor.customer.com"
+    rewrite:
+      "(.*)": "k8s.gcr.io/$1"
+  ghcr.io:
+    endpoint:
+      - "https://harbor.customer.com"
+    rewrite:
+      "(.*)": "ghcr.io/$1"
+      
+configs:
+  "harbor.customer.com":
+    auth:
+      username: "USERNAME"
+      password: "PASSWORD"
+#    tls:
+#      cert_file:   
+#      key_file:    
+#      ca_file:     
+#      insecure_skip_verify: 

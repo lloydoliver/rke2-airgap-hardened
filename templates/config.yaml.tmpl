@@ -1,0 +1,21 @@
+server:  https://$CLUSTERNAME:9345
+write-kubeconfig-mode: "0644"
+token: $TOKEN
+debug: $DEBUG
+tls-san:
+   - $CLUSTERNAME
+   - $HOST1.$DOMAIN_NAME
+   - $HOST2.$DOMAIN_NAME
+   - $HOST3.$DOMAIN_NAME
+
+cluster-cidr: $CLUSTER_CIDR
+service-cidr: $SERVICE_CIDR
+cluster-dns: $CLUSTER_DNS
+
+cni: $CNI
+
+profile: $CIS_PROFILE
+pod-security-admission-config-file: /etc/rancher/rke2/rancher-psa.yaml
+
+# audit-policy-file: /etc/rancher/rke2/audit-policy.yaml
+

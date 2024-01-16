@@ -1,0 +1,42 @@
+mirrors:
+  registry.rancher.com:
+    endpoint:
+      - "$REGISTRY_ENDPOINT_PROTOCOL://$REGISTRY_ENDPOINT"
+    rewrite:
+      "(.*)": "registry.rancher.com/$1"
+  docker.io:
+    endpoint:
+      - "$REGISTRY_ENDPOINT_PROTOCOL://$REGISTRY_ENDPOINT"
+    rewrite:
+      "(.*)": "docker.io/$1"
+  quay.io:
+    endpoint:
+      - "$REGISTRY_ENDPOINT_PROTOCOL://$REGISTRY_ENDPOINT"
+    rewrite:
+      "(.*)": "quay.io/$1"
+  gcr.io:
+    endpoint:
+      - "$REGISTRY_ENDPOINT_PROTOCOL://$REGISTRY_ENDPOINT"
+    rewrite:
+      "(.*)": "gcr.io/$1"
+  k8s.gcr.io:
+    endpoint:
+      - "$REGISTRY_ENDPOINT_PROTOCOL://$REGISTRY_ENDPOINT"
+    rewrite:
+      "(.*)": "k8s.gcr.io/$1"
+  ghcr.io:
+    endpoint:
+      - "$REGISTRY_ENDPOINT_PROTOCOL://$REGISTRY_ENDPOINT"
+    rewrite:
+      "(.*)": "ghcr.io/$1"
+      
+configs:
+  "$REGISTRY_ENDPOINT":
+    auth:
+      username: "$REGISTRY_USERNAME"
+      password: "$REGISTRY_PASSWORD"
+#    tls:
+#      cert_file:   
+#      key_file:    
+#      ca_file:     
+#      insecure_skip_verify: 

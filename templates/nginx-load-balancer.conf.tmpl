@@ -1,0 +1,53 @@
+worker_processes 4;
+worker_rlimit_nofile 40000;
+
+events {
+    worker_connections 8192;
+}
+
+stream {
+    upstream rancher_servers_http {
+        least_conn;
+        server $HOST1.$DOMAIN_NAME:80 max_fails=3 fail_timeout=5s;
+        server $HOST2.$DOMAIN_NAME:80 max_fails=3 fail_timeout=5s;
+        server $HOST3.$DOMAIN_NAME:80 max_fails=3 fail_timeout=5s;
+    }
+    server {
+        listen 80;
+        proxy_pass rancher_servers_http;
+    }
+
+    upstream rancher_servers_https {
+        least_conn;
+        server $HOST1.$DOMAIN_NAME:443 max_fails=3 fail_timeout=5s;
+        server $HOST2.$DOMAIN_NAME:443 max_fails=3 fail_timeout=5s;
+        server $HOST3.$DOMAIN_NAME:443 max_fails=3 fail_timeout=5s;
+    }
+    server {
+        listen 443;
+        proxy_pass rancher_servers_https;
+    }
+
+    upstream rancher_servers_k8sapi {
+        least_conn;
+        server $HOST1.$DOMAIN_NAME:6443 max_fails=3 fail_timeout=5s;
+        server $HOST2.$DOMAIN_NAME:6443 max_fails=3 fail_timeout=5s;
+        server $HOST3.$DOMAIN_NAME:6443 max_fails=3 fail_timeout=5s;
+    }
+    server {
+        listen 6443;
+        proxy_pass rancher_servers_k8sapi;
+    }
+
+    upstream rancher_servers_rke2 {
+        least_conn;
+        server $HOST1.$DOMAIN_NAME:9345 max_fails=3 fail_timeout=5s;
+        server $HOST2.$DOMAIN_NAME:9345 max_fails=3 fail_timeout=5s;
+        server $HOST3.$DOMAIN_NAME:9345 max_fails=3 fail_timeout=5s;
+    }
+    server {
+        listen 9345;
+        proxy_pass rancher_servers_rke2;
+    }
+
+}
