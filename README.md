@@ -12,3 +12,4 @@ cd suse/rancher
 
 git clone https://github.com/harrisonbc/rke2-airgap-hardened
 
+run createconfig.sh to apply variables and create the required config files
