@@ -1,3 +1,6 @@
 config.yaml
 nginx-load-balancer.conf
 registries.yaml
+rke2-calico-config.yaml
+install.sh
+config-1st.yaml
