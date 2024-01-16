@@ -1,0 +1,21 @@
+server:  https://rancher.customer.com:9345
+write-kubeconfig-mode: "0644"
+token: cluster-secret
+debug: false
+tls-san:
+   - rancher.customer.com
+   - rmc-node1.customer.com
+   - rmc-node2.customer.com
+   - rmc-node3.customer.com
+
+cluster-cidr: 10.42.0.0/16
+service-cidr: 10.43.0.0/16
+cluster-dns: 10.43.0.10
+
+cni: calico
+
+profile: cis-1.23
+pod-security-admission-config-file: /etc/rancher/rke2/rancher-psa.yaml
+
+# audit-policy-file: /etc/rancher/rke2/audit-policy.yaml
+
