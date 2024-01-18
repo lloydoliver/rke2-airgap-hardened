@@ -62,6 +62,12 @@ curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scrip
 chmod 700 get_helm.sh
 ./get_helm.sh
 
+# Wait for hosts to reboot
+echo "Waiting for Hosts to reboot"
+sleep 60
+echo "Continuting"
+
+
 # Create First Node
 echo 
 echo "Install RKE2 on First Node."
@@ -98,6 +104,7 @@ scp $HOST_USER@$HOST1:/etc/rancher/rke2/rke2.yaml rke2.yaml
 echo 
 echo "Update kubeconfig file, with cluster url."
 sed s/127.0.0.1/$CLUSTERNAME/ <./rke2.yaml >~/.kube/config
+chmod 600 ~/.kube/config
 
 # The Cluster has now been created with the first node, we can join nodes 2 & 3
 #
@@ -105,18 +112,25 @@ sed s/127.0.0.1/$CLUSTERNAME/ <./rke2.yaml >~/.kube/config
 
 echo 
 echo "Install RKE2 on Second & Third Node."
-for i in $HOST23; do ssh $HOST_USER@$i INSTALL_RKE2_VERSION=$RKE2_VERSION ~/suse/rancher/install.sh; done
+for i in $HOST23; do ssh $HOST_USER@$i sudo INSTALL_RKE2_VERSION=$RKE2_VERSION ~/suse/rancher/install.sh; done
 
 # Perform CIS 1.23 Hardening Actions on 2nd & 3rd Node (Create etcd user & group, copy config file to correct location)
 echo 
 echo "Perform CIS Hardening steps on Second & Third Node."
-for i in $HOST23; do ssh $HOST_USER@$i 'useradd -r -c "etcd user" -s /sbin/nologin -M etcd -U | cp -f /opt/rke2/share/rke2/rke2-cis-sysctl.conf /etc/sysctl.d/60-rke2-cis.conf && systemctl restart systemd-sysctl' ; done
+for i in $HOST23; do ssh $HOST_USER@$i 'sudo useradd -r -c "etcd user" -s /sbin/nologin -M etcd -U' ; done
+
+for i in $HOST23; do ssh $HOST_USER@$i 'sudo cp -f /opt/rke2/share/rke2/rke2-cis-sysctl.conf /etc/sysctl.d/60-rke2-cis.conf' ; done
+for i in $HOST23; do ssh $HOST_USER@$i 'sudo cp -f /usr/local/share/rke2/rke2-cis-sysctl.conf /etc/sysctl.d/60-rke2-cis.conf' ; done
+for i in $HOST23; do ssh $HOST_USER@$i 'sudo cp -f /usr/share/rke2/rke2-cis-sysctl.conf /etc/sysctl.d/60-rke2-cis.conf' ; done
+
+for i in $HOST23; do ssh $HOST_USER@$i 'sudo systemctl restart systemd-sysctl' ; done
+
 
 # Enable and Start Cluster on 2nd & 3rd Nodes
 echo 
 echo "Enable and start RKE2 on Second and Third Node."
-for i in $HOST23; do ssh $HOST_USER@$i systemctl enable rke2-server.service; done
-for i in $HOST23; do ssh $HOST_USER@$i systemctl start rke2-server.service; done
+for i in $HOST23; do ssh $HOST_USER@$i sudo systemctl enable rke2-server.service; done
+for i in $HOST23; do ssh $HOST_USER@$i sudo systemctl start rke2-server.service; done
 
 # The Cluster should now be created up and running.
 echo 
