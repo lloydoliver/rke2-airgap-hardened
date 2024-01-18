@@ -10,7 +10,7 @@ set +a
 
 echo 
 echo "Create required directories on the hosts."
-for i in $HOSTS; do ssh $HOST_USER@$i mkdir -p ~/suse/rancher/ /etc/rancher/rke2/ /var/lib/rancher/rke2/server/manifests/ /var/lib/rancher/rke2/agent/images/ /opt/rke2/ ; done
+for i in $HOSTS; do ssh $HOST_USER@$i sudo mkdir -p ~/suse/rancher/ /etc/rancher/rke2/ /var/lib/rancher/rke2/server/manifests/ /var/lib/rancher/rke2/agent/images/ /opt/rke2/ ; done
 
 
 # Copy files to the appropriate location on the 3 hosts
