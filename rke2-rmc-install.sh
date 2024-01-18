@@ -18,18 +18,19 @@ for i in $HOSTS; do ssh $HOST_USER@$i sudo mkdir -p ~/suse/rancher/ /etc/rancher
 # config-1st.yaml & config.yaml
 echo 
 echo "Copy config.yaml to hosts."
-scp config-1st.yaml $HOST_USER@$HOST1:/etc/rancher/rke2/config.yaml 
-for i in $HOST23; do scp config.yaml $HOST_USER@$i:/etc/rancher/rke2/config.yaml ; done
+scp config-1st.yaml $HOST_USER@$HOST1:/tmp/config.yaml && ssh $HOST_USER@$HOST1 sudo cp /tmp/config.yaml /etc/rancher/rke2/config.yaml 
+for i in $HOST23; do scp config.yaml $HOST_USER@$i:/tmp/config.yaml && ssh $HOST_USER@$i sudo cp /tmp/config.yaml /etc/rancher/rke2/config.yaml ; done
 
 # Registries redirect file, registries.yaml
 echo 
 echo "Copy registries.yaml to hosts."
-for i in $HOSTS; do scp registries.yaml $HOST_USER@$i:/etc/rancher/rke2/registries.yaml ; done
+for i in $HOSTS; do scp registries.yaml $HOST_USER@$i:/tmp && ssh $HOST_USER@$i sudo cp /tmp/registries.yaml /etc/rancher/rke2/registries.yaml ; done
 
 # Pod Security Admission config file, rancher-psa.yaml
 echo 
 echo "Copy rancher-psa.yaml to hosts."
 for i in $HOSTS; do scp rancher-psa.yaml $HOST_USER@$i:/etc/rancher/rke2/rancher-psa.yaml ; done
+for i in $HOSTS; do scp rancher-psa.yaml $HOST_USER@$i:/tmp && ssh $HOST_USER@$i sudo cp /tmp/rancher-psa.yaml /etc/rancher/rke2/rancher-psa.yaml ; done
 
 # Calico config file rke2-calico-config.yaml
 echo 
