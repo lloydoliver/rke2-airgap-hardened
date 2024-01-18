@@ -10,7 +10,7 @@ set +a
 
 echo 
 echo "Create required directories on the hosts."
-for i in $HOSTS; do ssh root@$i mkdir -p ~/suse/rancher/ /etc/rancher/rke2/ /var/lib/rancher/rke2/server/manifests/ /var/lib/rancher/rke2/agent/images/ /opt/rke2/ ; done
+for i in $HOSTS; do ssh $HOST_USER@$i mkdir -p ~/suse/rancher/ /etc/rancher/rke2/ /var/lib/rancher/rke2/server/manifests/ /var/lib/rancher/rke2/agent/images/ /opt/rke2/ ; done
 
 
 # Copy files to the appropriate location on the 3 hosts
@@ -18,33 +18,33 @@ for i in $HOSTS; do ssh root@$i mkdir -p ~/suse/rancher/ /etc/rancher/rke2/ /var
 # config-1st.yaml & config.yaml
 echo 
 echo "Copy config.yaml to hosts."
-scp config-1st.yaml root@$HOST1:/etc/rancher/rke2/config.yaml 
-for i in $HOST23; do scp config.yaml root@$i:/etc/rancher/rke2/config.yaml ; done
+scp config-1st.yaml $HOST_USER@$HOST1:/etc/rancher/rke2/config.yaml 
+for i in $HOST23; do scp config.yaml $HOST_USER@$i:/etc/rancher/rke2/config.yaml ; done
 
 # Registries redirect file, registries.yaml
 echo 
 echo "Copy registries.yaml to hosts."
-for i in $HOSTS; do scp registries.yaml root@$i:/etc/rancher/rke2/registries.yaml ; done
+for i in $HOSTS; do scp registries.yaml $HOST_USER@$i:/etc/rancher/rke2/registries.yaml ; done
 
 # Pod Security Admission config file, rancher-psa.yaml
 echo 
 echo "Copy rancher-psa.yaml to hosts."
-for i in $HOSTS; do scp rancher-psa.yaml root@$i:/etc/rancher/rke2/rancher-psa.yaml ; done
+for i in $HOSTS; do scp rancher-psa.yaml $HOST_USER@$i:/etc/rancher/rke2/rancher-psa.yaml ; done
 
 # Calico config file rke2-calico-config.yaml
 echo 
 echo "Copy rke2-calico-config.yaml to hosts."
-for i in $HOSTS; do scp rke2-calico-config.yaml root@$i:/var/lib/rancher/rke2/server/manifests/rke2-calico-config.yaml; done
+for i in $HOSTS; do scp rke2-calico-config.yaml $HOST_USER@$i:/var/lib/rancher/rke2/server/manifests/rke2-calico-config.yaml; done
 
 # RKE2 Install script
 echo 
 echo "Copy RKE2 install script to hosts."
-for i in $HOSTS; do scp install.sh root@$i:~/suse/rancher; done
+for i in $HOSTS; do scp install.sh $HOST_USER@$i:~/suse/rancher; done
 
 # Reboot Nodes
 echo 
 echo "Reboot the 3 hosts."
-for i in $HOSTS; do ssh root@$i reboot ; done
+for i in $HOSTS; do ssh $HOST_USER@$i reboot ; done
 
 # Install Required tools on Jump-Host
 # In order to interact with the Kubernetes cluster from the command line, we need to install the kubectl command.
@@ -65,28 +65,28 @@ chmod 700 get_helm.sh
 # Create First Node
 echo 
 echo "Install RKE2 on First Node."
-ssh root@$HOST1 INSTALL_RKE2_VERSION=$RKE2_VERSION ~/suse/rancher/install.sh
+ssh $HOST_USER@$HOST1 INSTALL_RKE2_VERSION=$RKE2_VERSION ~/suse/rancher/install.sh
 
 # Perform CIS 1.23 Hardening Actions on 1st Node (Create etcd user & group, copy config file to correct location)
 echo 
 echo "Perform CIS Hardening steps on First Node."
-ssh root@$HOST1 'useradd -r -c "etcd user" -s /sbin/nologin -M etcd -U | cp -f /opt/rke2/share/rke2/rke2-cis-sysctl.conf /etc/sysctl.d/60-rke2-cis.conf | systemctl restart systemd-sysctl' 
+ssh $HOST_USER@$HOST1 'useradd -r -c "etcd user" -s /sbin/nologin -M etcd -U | cp -f /opt/rke2/share/rke2/rke2-cis-sysctl.conf /etc/sysctl.d/60-rke2-cis.conf | systemctl restart systemd-sysctl' 
 
 # Apply Calico Extra config - If Required
 # echo 
 # echo "Copy calico config file to first node."
-# scp rke2-calico-config.yaml root@$HOST1:/var/lib/rancher/rke2/server/manifests/rke2-calico-config.yaml
+# scp rke2-calico-config.yaml $HOST_USER@$HOST1:/var/lib/rancher/rke2/server/manifests/rke2-calico-config.yaml
 
 # Enable and Start Cluster on 1st Node
 echo 
 echo "Enable and start RKE2 on First Node."
-ssh root@$HOST1 systemctl enable rke2-server.service
-ssh root@$HOST1 systemctl start rke2-server.service
+ssh $HOST_USER@$HOST1 systemctl enable rke2-server.service
+ssh $HOST_USER@$HOST1 systemctl start rke2-server.service
 
 # Retrieve kubeconfig file from first host
 echo 
 echo "Retrieve kubeconfig file."
-scp root@$HOST1:/etc/rancher/rke2/rke2.yaml rke2.yaml
+scp $HOST_USER@$HOST1:/etc/rancher/rke2/rke2.yaml rke2.yaml
 
 # Adjust host in URL to reflect Load Balancer Address
 echo 
@@ -99,18 +99,18 @@ sed s/127.0.0.1/$CLUSTERNAME/ <./rke2.yaml >~/.kube/config
 
 echo 
 echo "Install RKE2 on Second & Third Node."
-for i in $HOST23; do ssh root@$i INSTALL_RKE2_VERSION=$RKE2_VERSION ~/suse/rancher/install.sh; done
+for i in $HOST23; do ssh $HOST_USER@$i INSTALL_RKE2_VERSION=$RKE2_VERSION ~/suse/rancher/install.sh; done
 
 # Perform CIS 1.23 Hardening Actions on 2nd & 3rd Node (Create etcd user & group, copy config file to correct location)
 echo 
 echo "Perform CIS Hardening steps on Second & Third Node."
-for i in $HOST23; do ssh root@$i 'useradd -r -c "etcd user" -s /sbin/nologin -M etcd -U | cp -f /opt/rke2/share/rke2/rke2-cis-sysctl.conf /etc/sysctl.d/60-rke2-cis.conf && systemctl restart systemd-sysctl' ; done
+for i in $HOST23; do ssh $HOST_USER@$i 'useradd -r -c "etcd user" -s /sbin/nologin -M etcd -U | cp -f /opt/rke2/share/rke2/rke2-cis-sysctl.conf /etc/sysctl.d/60-rke2-cis.conf && systemctl restart systemd-sysctl' ; done
 
 # Enable and Start Cluster on 2nd & 3rd Nodes
 echo 
 echo "Enable and start RKE2 on Second and Third Node."
-for i in $HOST23; do ssh root@$i systemctl enable rke2-server.service; done
-for i in $HOST23; do ssh root@$i systemctl start rke2-server.service; done
+for i in $HOST23; do ssh $HOST_USER@$i systemctl enable rke2-server.service; done
+for i in $HOST23; do ssh $HOST_USER@$i systemctl start rke2-server.service; done
 
 # The Cluster should now be created up and running.
 echo 
