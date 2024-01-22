@@ -42,6 +42,12 @@ echo
 echo "Copy RKE2 install script to hosts."
 for i in $HOSTS; do scp install.sh $HOST_USER@$i:~/suse/rancher; done
 
+## Kube-VIP Manifests
+#echo 
+#echo "Copy Kube-VIP Manifests (Config & RBAC) to HOST1."
+#scp kube-vip.yaml $HOST_USER@$HOST1:/tmp && ssh $HOST_USER@$HOST1 sudo cp /tmp/kube-vip.yaml /var/lib/rancher/rke2/server/manifests/; done
+#scp kube-vip-rbac.yaml $HOST_USER@$HOST1:/tmp && ssh $HOST_USER@$HOST1 sudo cp /tmp/kube-vip-rbac.yaml /var/lib/rancher/rke2/server/manifests/; done
+
 # Reboot Nodes
 echo 
 echo "Reboot the 3 hosts."
