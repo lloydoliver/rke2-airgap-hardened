@@ -64,6 +64,7 @@ chmod 700 get_helm.sh
 ./get_helm.sh
 
 # Wait for hosts to reboot
+echo 
 echo "Waiting for Hosts to reboot"
 sleep 60
 echo "Continuting"
