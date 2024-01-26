@@ -24,10 +24,10 @@ This repository will assist in the installation of SUSE Rancher on a 3-Node RKE2
   - Rancher Password
 
 6. On a host with network access to to the 3 VMs:
-  >mkdir -p suse/rancher
-  >cd suse/rancher
-  >git clone https://github.com/harrisonbc/rke2-airgap-hardened
-  >cd rke2-airgap-hardened
+        mkdir -p suse/rancher
+        cd suse/rancher
+        git clone https://github.com/harrisonbc/rke2-airgap-hardened
+        cd rke2-airgap-hardened
 
 7. Run **createconfig.sh** to create required config files on a host with network access to the RKE2 Machines
 run createconfig.sh to apply variables and create the required config files
