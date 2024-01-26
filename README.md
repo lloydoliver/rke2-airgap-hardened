@@ -13,15 +13,15 @@ This repository will assist in the installation of SUSE Rancher on a 3-Node RKE2
 4. Populate your private registry with the required images
 
 5. Edit the variables.env file to reflect the environment to be installed. Items include:
-        - Host Names
-        - Cluster Name
-        - RKE2 Version
-        - CNI & CIDR Settings
-        - CIS Profile
-        - Private Registry Settings
-        - Cert Manager Version
-        - Rancher Version
-        - Rancher Password
+    - Host Names
+    - Cluster Name
+    - RKE2 Version
+    - CNI & CIDR Settings
+    - CIS Profile
+    - Private Registry Settings
+    - Cert Manager Version
+    - Rancher Version
+    - Rancher Password
 
 6. On a host with network access to to the 3 VMs:
 
