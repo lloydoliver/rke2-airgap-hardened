@@ -5,12 +5,9 @@ This repository will assist in the installation of SUSE Rancher on a 3-Node RKE2
 ## Installation Steps
 
 1. Create the 3 VMs to host the RKE2 Nodes. Refer the to the Pre-Requisites: https://ranchermanager.docs.rancher.com/how-to-guides/new-user-guides/infrastructure-setup/ha-rke2-kubernetes-cluster
-
 2. Setup the Load Balancer, an nginx config file is provided for testing purposes that can be used with docker: https://ranchermanager.docs.rancher.com/how-to-guides/new-user-guides/infrastructure-setup/nginx-load-balancer#option---run-nginx-as-docker-container
-
 3. Ensure that the DNS entries have been created for the environment (nodes, Load Balancer etc). 
-
-4. Edit the variables.env file to reflect the environment to be installed. Items should include:
+4. Edit the variables.env file to reflect the environment to be installed. Items include:
 - Host Names
 - Cluster Name
 - RKE2 Version
