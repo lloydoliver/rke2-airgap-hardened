@@ -10,8 +10,7 @@ This repository will assist in the installation of SUSE Rancher on a 3-Node RKE2
 
 3. Ensure that the DNS entries have been created for the environment (nodes, Load Balancer etc). 
 
-4. Edit the variables.env file to reflect the environment to be installed
-Items should include:
+4. Edit the variables.env file to reflect the environment to be installed. Items should include:
 - Host Names
 - Cluster Name
 - RKE2 Version
