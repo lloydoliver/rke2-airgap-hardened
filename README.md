@@ -5,8 +5,10 @@ This repository will assist in the installation of SUSE Rancher on a 3-Node RKE2
 ## Installation Steps
 
 1. Create the 3 VMs to host the RKE2 Nodes. Refer the to the Pre-Requisites: https://ranchermanager.docs.rancher.com/how-to-guides/new-user-guides/infrastructure-setup/ha-rke2-kubernetes-cluster
-Edit the variables.env file to reflect the environment to be installed
-2. Ensure that the DNS entries have been created Run the 
+
+2. Edit the variables.env file to reflect the environment to be installed
+
+3. Ensure that the DNS entries have been created Run the 
 
 
 ## Ensure Host DNS entries are created
