@@ -150,8 +150,18 @@ scp_copy "$HOST1:/etc/rancher/rke2/rke2.yaml" "localhost" "./rke2.yaml"
 sed "s/127.0.0.1/$CLUSTERNAME/" < ./rke2.yaml > ~/.kube/config
 chmod 600 ~/.kube/config
 
-# Install remaining nodes
+# Install remaining master nodes
 for host in "${HOST23[@]}"; do
+    install_rke2 "$host"
+done
+
+# Iterate over the hosts.list file, and install RKE2 on worker nodes
+INSTALLED=("$HOST1" "${HOST23[@]}")
+for host in "${HOSTS[@]}"; do
+    # Skip if already installed
+    if [[ "${INSTALLED[*]}" == "$host" ]]; then
+        continue
+    fi
     install_rke2 "$host"
 done
 
