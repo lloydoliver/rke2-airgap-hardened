@@ -33,10 +33,14 @@ envsubst < templates/kube-vip.yaml.tmpl > kube-vip.yaml
 # ssh-keygen -t rsa -b 4096
 ## Only create key if key doesn't already exist
 if [ ! -f $HOME/.ssh/id_rsa ]; then
-ssh-keygen -q -t rsa -b 4096 -f ~/.ssh/id_rsa -N ""
+  ssh-keygen -q -t rsa -b 4096 -f ~/.ssh/id_rsa -N ""
 fi
 
-for i in $HOSTS; do $HOST=$i.$HOST_DOMAIN ;ssh-copy-id $SSH_OPTS -i $HOME/.ssh/id_rsa.pub $HOST_USER@$HOST; done
+for i in $HOSTS; 
+do 
+  $HOST=$i.$DOMAIN_NAME
+  ssh-copy-id $SSH_OPTS -i $HOME/.ssh/id_rsa.pub $HOST_USER@$HOST
+done
 
 # Download RKE2 Installation Script & make executable
 curl -sfL https://get.rke2.io > ./install.sh
