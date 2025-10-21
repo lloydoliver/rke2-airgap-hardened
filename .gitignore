@@ -6,3 +6,4 @@ install.sh
 config-1st.yaml
 rke2.yaml
 rke2_artifacts/
+rke2_configs/
