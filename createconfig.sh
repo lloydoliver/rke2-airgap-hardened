@@ -38,7 +38,7 @@ fi
 
 for i in $HOSTS; 
 do 
-  $HOST=$i.$DOMAIN_NAME
+  HOST=$i.$DOMAIN_NAME
   ssh-copy-id $SSH_OPTS -i $HOME/.ssh/id_rsa.pub $HOST_USER@$HOST
 done
 
