@@ -155,6 +155,12 @@ for host in "${HOST23[@]}"; do
     install_rke2 "$host"
 done
 
+# Close all persistent SSH ControlMaster connections
+echo "[INFO] Closing all persistent SSH connections"
+for host in "${HOSTS[@]}"; do
+    ssh -O exit $SSH_OPTS "$HOST_USER@$host" 2>/dev/null || true
+done
+
 # Kubernetes tool installations on jumphost
 echo "[INFO] Installing kubectl"
 curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
