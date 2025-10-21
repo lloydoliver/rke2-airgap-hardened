@@ -5,5 +5,6 @@ rke2-calico-config.yaml
 install.sh
 config-1st.yaml
 rke2.yaml
+hosts.list
 rke2_artifacts/
 rke2_configs/
