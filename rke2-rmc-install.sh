@@ -14,7 +14,7 @@ done < hosts.list
 
 HOST1="${HOSTS[0]}"
 HOST23=("${HOSTS[@]:1}") # Assumes hosts 2 & 3
-LOCAL_DIR="rke2_configs"
+LOCAL_DIR="./rke2_configs"
 REMOTE_TMP="/tmp"
 REMOTE_RKE2_DIR="/etc/rancher/rke2"
 FILES=( "config.yaml" "registries.yaml" "rancher-psa.yaml" )
@@ -23,7 +23,7 @@ DIRS=( "/etc/rancher/rke2" "/var/lib/rancher/rke2/server/manifests" "/var/lib/ra
 SSH_BASE="$HOST_USER@"
 
 # SSH ControlMaster options
-SSH_OPTS="-o StrictHostKeyChecking=no -o ControlMaster=auto -o ControlPersist=10m -o ControlPath=/tmp/ssh-%r@%h:%p"
+SSH_OPTS="-o ControlMaster=auto -o ControlPersist=10m -o ControlPath=/tmp/ssh-%r@%h:%p"
 
 # Function to run SSH command with error handling
 ssh_exec() {
@@ -48,9 +48,21 @@ scp_copy() {
     fi
 }
 
+# Function to check if host is already configured
+is_configured() {
+    local host=$1
+    ssh_exec "$host" "[ -f /etc/rke2/.configured ] && systemctl is-active --quiet rke2-server" && return 0 || return 1
+}
+
 # Prepare management hosts
 prepare_host() {
     local host=$1
+
+    if is_configured "$host"; then
+        echo "[INFO] $host already configured. Skipping preparation."
+        return
+    fi
+
     scp_copy "$LOCAL_DIR/" "$host" "$REMOTE_TMP/"
 
     CMD=""
@@ -88,6 +100,12 @@ sleep 60
 # Function to install RKE2 and perform CIS hardening
 install_rke2() {
     local host=$1
+
+    if is_configured "$host"; then
+        echo "[INFO] $host already configured. Skipping RKE2 installation."
+        return
+    fi
+
     ssh_exec "$host" "sudo INSTALL_RKE2_VERSION=$RKE2_VERSION ~/suse/rancher/install.sh"
     ssh_exec "$host" 'sudo useradd -r -c "etcd user" -s /sbin/nologin -M etcd -U || true'
     for conf in "/opt/rke2/share/rke2/rke2-cis-sysctl.conf" "/usr/local/share/rke2/rke2-cis-sysctl.conf" "/usr/share/rke2/rke2-cis-sysctl.conf"; do
@@ -95,6 +113,9 @@ install_rke2() {
     done
     ssh_exec "$host" "sudo systemctl restart systemd-sysctl"
     ssh_exec "$host" "sudo systemctl enable rke2-server.service && sudo systemctl start rke2-server.service"
+
+    # Create marker file
+    ssh_exec "$host" "sudo touch /etc/rke2/.configured"
 }
 
 # Install first node
