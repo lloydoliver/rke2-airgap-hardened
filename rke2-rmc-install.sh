@@ -51,7 +51,7 @@ scp_copy() {
 # Function to check if host is already configured
 is_configured() {
     local host=$1
-    ssh_exec "$host" "[ -f /etc/rke2/.configured ] && systemctl is-active --quiet rke2-server" && return 0 || return 1
+    ssh_exec "$host" "[ -f /etc/rancher/.configured ] && systemctl is-active --quiet rke2-server" && return 0 || return 1
 }
 
 # Prepare management hosts
@@ -75,6 +75,10 @@ prepare_host() {
     if [[ "$host" == "$HOST1" ]]; then
         CMD+="sudo sed -i '/^server/ s/^/# /' $REMOTE_RKE2_DIR/config.yaml;"
     fi
+    # Disable firewalld
+    CMD+="sudo systemctl stop firewalld; sudo systemctl disable firewalld;"
+    # Disable swap
+    CMD+="sudo swapoff -a; sudo sed -i.bak '/ swap / s/^\(.*\)$/#\1/' /etc/fstab;"
     ssh_exec "$host" "$CMD"
 }
 
@@ -115,7 +119,7 @@ install_rke2() {
     ssh_exec "$host" "sudo systemctl enable rke2-server.service && sudo systemctl start rke2-server.service"
 
     # Create marker file
-    ssh_exec "$host" "sudo touch /etc/rke2/.configured"
+    ssh_exec "$host" "sudo touch /etc/rancher/.configured"
 }
 
 # Install first node
