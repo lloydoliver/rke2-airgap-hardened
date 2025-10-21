@@ -9,6 +9,10 @@ set -a
 source variables.env
 set +a
 
+# Set some ssh options used later
+# Turn off host key checking as we want as close to zero touch deployment as possible
+SSH_OPTS="-o StrictHostKeyChecking=no"
+
 # Create RKE2 Cluster config file from template (config.yaml)
 # The parameter reference is available here: https://docs.rke2.io/reference/server_config & https://docs.rke2.io/reference/linux_agent_config
 envsubst < templates/config.yaml.tmpl > config.yaml
@@ -27,8 +31,12 @@ envsubst < templates/kube-vip.yaml.tmpl > kube-vip.yaml
 
 # Create and distribute ssh keys
 # ssh-keygen -t rsa -b 4096
+## Only create key if key doesn't already exist
+if [ ! -f $HOME/.ssh/id_rsa ]; then
 ssh-keygen -q -t rsa -b 4096 -f ~/.ssh/id_rsa -N ""
-for i in $HOSTS; do ssh-copy-id -i $HOME/.ssh/id_rsa.pub $HOST_USER@$i; done
+fi
+
+for i in $HOSTS; do $HOST=$i.$HOST_DOMAIN ;ssh-copy-id $SSH_OPTS -i $HOME/.ssh/id_rsa.pub $HOST_USER@$HOST; done
 
 # Download RKE2 Installation Script & make executable
 curl -sfL https://get.rke2.io > ./install.sh
