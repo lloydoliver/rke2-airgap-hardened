@@ -19,6 +19,7 @@ REMOTE_TMP="/tmp"
 REMOTE_RKE2_DIR="/etc/rancher/rke2"
 FILES=( "config.yaml" "registries.yaml" "rancher-psa.yaml" )
 DIRS=( "/etc/rancher/rke2" "/var/lib/rancher/rke2/server/manifests" "/var/lib/rancher/rke2/agent/images" "/opt/rke2" )
+ARTIFACT_DIR="rke2_artifacts"
 
 SSH_BASE="$HOST_USER@"
 
@@ -92,6 +93,25 @@ for host in "${HOSTS[@]}"; do
     scp_copy "install.sh" "$host" "~/suse/rancher"
 done
 
+# Upload RKE2 artifacts to all hosts
+for host in "${HOSTS[@]}"; do
+    if is_configured "$host"; then
+        echo "[INFO] $host already configured. Skipping artifact upload."
+        continue
+    fi
+
+    for local_file in "$ARTIFACT_DIR"/*; do
+        filename=$(basename "$local_file")
+        # Check if file exists and has the same size on remote host
+        if ssh_exec "$host" "[ -f $REMOTE_TMP/$filename ] && [ \$(stat -c%s $REMOTE_TMP/$filename) -eq \$(stat -c%s $local_file) ]"; then
+            echo "[INFO] $filename already exists on $host:$REMOTE_TMP with correct size. Skipping."
+            continue
+        fi
+        echo "[SCP] Uploading $filename to $host:$REMOTE_TMP"
+        scp_copy "$local_file" "$host" "$REMOTE_TMP/"
+    done
+done
+
 # Reboot hosts
 for host in "${HOSTS[@]}"; do
     ssh_exec "$host" "sudo reboot"
@@ -110,7 +130,7 @@ install_rke2() {
         return
     fi
 
-    ssh_exec "$host" "sudo INSTALL_RKE2_VERSION=$RKE2_VERSION ~/suse/rancher/install.sh"
+    ssh_exec "$host" "sudo INSTALL_RKE2_ARTIFACT_PATH=/$REMOTE_TMP ~/suse/rancher/install.sh"
     ssh_exec "$host" 'sudo useradd -r -c "etcd user" -s /sbin/nologin -M etcd -U || true'
     for conf in "/opt/rke2/share/rke2/rke2-cis-sysctl.conf" "/usr/local/share/rke2/rke2-cis-sysctl.conf" "/usr/share/rke2/rke2-cis-sysctl.conf"; do
         ssh_exec "$host" "sudo cp -f $conf /etc/sysctl.d/60-rke2-cis.conf || true"
