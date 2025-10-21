@@ -23,7 +23,7 @@ DIRS=( "/etc/rancher/rke2" "/var/lib/rancher/rke2/server/manifests" "/var/lib/ra
 SSH_BASE="$HOST_USER@"
 
 # SSH ControlMaster options
-SSH_OPTS="-o ControlMaster=auto -o ControlPersist=10m -o ControlPath=/tmp/ssh-%r@%h:%p"
+SSH_OPTS="-o StrictHostKeyChecking=no -o ControlMaster=auto -o ControlPersist=10m -o ControlPath=/tmp/ssh-%r@%h:%p"
 
 # Function to run SSH command with error handling
 ssh_exec() {
