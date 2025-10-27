@@ -85,6 +85,7 @@ add_sudo_nopasswd() {
     local sudoers_line="${user} ALL=(ALL) NOPASSWD:ALL"
     local sudoers_file="/etc/sudoers.d/$user"
 
+    echo "[INFO] Adding $user to SUDO on $host"
     ssh -t $SSH_OPTS "$SSH_BASE$host" "bash -c '
         if sudo grep -q \"^${user} \" /etc/sudoers; then
             echo \"User ${user} already exists in sudoers.\"
@@ -147,26 +148,25 @@ upload_rke2_artifacts() {
         return
     fi
 
-    for host in "${HOSTS[@]}"; do
-        # Skip if already RKE2 has been installed
-        [[ $(check_step $host install) ]] && echo "$host install done. Skipping artifact upload." && continue
+    # Skip if already RKE2 has been installed
+    [[ $(check_step $host install) ]] && echo "$host install done. Skipping artifact upload." && continue
 
-        for local_file in "$ARTIFACT_DIR"/*; do
-            [ -f "$local_file" ] || continue
-            filename=$(basename "$local_file")
-            local_size=$(stat -c%s "$local_file")
+    for local_file in "$ARTIFACT_DIR"/*; do
+        [ -f "$local_file" ] || continue
+        filename=$(basename "$local_file")
+        local_size=$(stat -c%s "$local_file")
 
-            remote_size=$(ssh $SSH_OPTS "$SSH_BASE$host" \
-                "if [ -f \"$REMOTE_TMP/$filename\" ]; then stat -c%s \"$REMOTE_TMP/$filename\"; else echo 0; fi")
+        remote_size=$(ssh $SSH_OPTS "$SSH_BASE$host" \
+            "if [ -f \"$REMOTE_TMP/$filename\" ]; then stat -c%s \"$REMOTE_TMP/$filename\"; else echo 0; fi")
 
-            if [ "$remote_size" -eq "$local_size" ]; then
-                echo "[INFO] $filename already exists on $host:$REMOTE_TMP with correct size. Skipping."
-                continue
-            fi
+        if [ "$remote_size" -eq "$local_size" ]; then
+            echo "[INFO] $filename already exists on $host:$REMOTE_TMP with correct size. Skipping."
+            continue
+        fi
 
-            echo "[SCP] Uploading $filename to $host:$REMOTE_TMP"
-            scp_copy "$local_file" "$host" "$REMOTE_TMP/"
-        done
+        echo "[SCP] Uploading $filename to $host:$REMOTE_TMP"
+        scp_copy "$local_file" "$host" "$REMOTE_TMP/"
+
     done
 
     RKE2_INSTALL_ARGS+="INSTALL_RKE2_ARTIFACT_PATH=$REMOTE_TMP "
