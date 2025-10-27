@@ -130,12 +130,23 @@ install_rke2() {
         return
     fi
 
-    ssh_exec "$host" "sudo INSTALL_RKE2_ARTIFACT_PATH=/$REMOTE_TMP ~/suse/rancher/install.sh"
+    # if 
+    if [[ " $HOST1 $HOST2 $HOST3 " =~ " $host " ]]; then
+      echo "[INFO] Installing master node on $host"
+      ssh_exec "$host" "sudo INSTALL_RKE2_ARTIFACT_PATH=/$REMOTE_TMP ~/suse/rancher/install.sh"
+    else
+      echo [INFO] Installing worker node on $host
+      ssh_exec "$host" "sudo INSTALL_RKE2_TYPE="agent" INSTALL_RKE2_ARTIFACT_PATH=/$REMOTE_TMP ~/suse/rancher/install.sh"
+    fi
+    
+    echo "[INFO] Setting kernel parameters"
     ssh_exec "$host" 'sudo useradd -r -c "etcd user" -s /sbin/nologin -M etcd -U || true'
     for conf in "/opt/rke2/share/rke2/rke2-cis-sysctl.conf" "/usr/local/share/rke2/rke2-cis-sysctl.conf" "/usr/share/rke2/rke2-cis-sysctl.conf"; do
         ssh_exec "$host" "sudo cp -f $conf /etc/sysctl.d/60-rke2-cis.conf || true"
     done
     ssh_exec "$host" "sudo systemctl restart systemd-sysctl"
+
+    echo "[INFO] Starting RKE2"
     ssh_exec "$host" "sudo systemctl enable rke2-server.service && sudo systemctl start rke2-server.service"
 
     # Create marker file
