@@ -32,7 +32,7 @@ ssh_exec() {
     local host=$1
     local cmd=$2
     echo "[SSH] Executing on $host: $cmd"
-    if ! ssh -t $SSH_OPTS "$SSH_BASE$host" "$cmd"; then
+    if ! ssh $SSH_OPTS "$SSH_BASE$host" "$cmd"; then
         echo "[ERROR] Command failed on $host: $cmd" >&2
         exit 1
     fi
@@ -74,7 +74,7 @@ add_sudo_nopasswd() {
     local sudoers_line="${user} ALL=(ALL) NOPASSWD:ALL"
     local sudoers_file="/etc/sudoers.d/$user"
 
-    ssh $SSH_OPTS "$SSH_BASE$host" "bash -c '
+    ssh -t $SSH_OPTS "$SSH_BASE$host" "bash -c '
         if sudo grep -q \"^${user} \" /etc/sudoers; then
             echo \"User ${user} already exists in sudoers.\"
         else
