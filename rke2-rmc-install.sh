@@ -149,7 +149,7 @@ if [[ "$INSTALL_METHOD" == "TARBALL" ]]; then
         for local_file in "$ARTIFACT_DIR"/*; do
             filename=$(basename "$local_file")
             # Check if file exists and has the same size on remote host
-            if ssh $SSH_OPTS "$SSH_BASE$host" "[ -f $REMOTE_TMP/$filename ] && [ \$(stat -c%s $REMOTE_TMP/$filename) -eq \$(stat -c%s $local_file) ]"; then
+            if ssh $SSH_OPTS "$SSH_BASE$host" "[ -f \"$REMOTE_TMP/$filename\" ] && [ \"\$(stat -c%s \"$REMOTE_TMP/$filename\")\" -eq \"\$(stat -c%s \"$local_file\")\" ]"; then
                 echo "[INFO] $filename already exists on $host:$REMOTE_TMP with correct size. Skipping."
                 continue
             fi
