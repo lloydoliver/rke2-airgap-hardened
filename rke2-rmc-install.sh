@@ -49,7 +49,7 @@ mark_step() {
 check_step() {
     local host=$1
     local step=$2
-    ssh_exec "$host" "[ -f $MARKER_DIR/$step ]" >/dev/null 2>&1
+    ssh $SSH_OPTS "$SSH_BASE$host" "[ -f $MARKER_DIR/$step ]"
 }
 
 # Function to SCP files with error handling
@@ -58,7 +58,10 @@ scp_copy() {
     local host=$2
     local dst=$3
 
-    [[ $(check_step $host copy) ]] && echo "$host copy done. Skipping." && return
+    if check_step "$host" copy; then
+        echo "[INFO] $host copy done. Skipping."
+        return
+    fi
 
     echo "[SCP] Copying $src -> $host:$dst"
 
@@ -82,6 +85,7 @@ scp_copy() {
 # Add NOPASSWD to suoders file to avoid having to constantly type passwords
 add_sudo_nopasswd() {
     local user=$HOST_USER
+    local host=$1
     local sudoers_line="${user} ALL=(ALL) NOPASSWD:ALL"
     local sudoers_file="/etc/sudoers.d/$user"
 
@@ -99,6 +103,7 @@ add_sudo_nopasswd() {
 
 # Remove NOPASSWD after installation
 remove_sudo_nopasswd() {
+    local host=$1
     local user=$HOST_USER
     local sudoers_file="/etc/sudoers.d/$user"
 
@@ -116,9 +121,12 @@ remove_sudo_nopasswd() {
 prepare_host() {
     local host=$1
 
-    [[ $(check_step $host prepare) ]] && echo "$host prepare done. Skipping." && return
+    if check_step "$host" prepare; then
+        echo "[INFO] $host prepare done. Skipping."
+        return
+    fi
 
-    add_sudo_nopasswd
+    add_sudo_nopasswd $host
 
     scp_copy "$LOCAL_DIR/" "$host" "$REMOTE_TMP/"
     scp_copy ./rancher-psa.yaml "$host" "$REMOTE_TMP/"
@@ -176,7 +184,10 @@ upload_rke2_artifacts() {
 install_rke2() {
     local host=$1
 
-    [[ $(check_step $host install) ]] && echo "$host install done. Skipping." && return
+    if check_step "$host" install; then
+        echo "[INFO] $host install done. Skipping."
+        return
+    fi
 
     # if 
     if [[ " $HOST1 $HOST2 $HOST3 " =~ " $host " ]]; then
@@ -201,7 +212,7 @@ install_rke2() {
     echo "[INFO] Starting RKE2"
     ssh_exec "$host" "sudo systemctl enable rke2-server.service && sudo systemctl start rke2-server.service"
 
-    remove_sudo_nopasswd
+    remove_sudo_nopasswd $host
 
     mark_step "$host" install
 }
