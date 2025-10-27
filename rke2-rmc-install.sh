@@ -43,8 +43,8 @@ scp_copy() {
     local src=$1
     local host=$2
     local dst=$3
-    echo "[SCP] Copying $src/* -> $host:$dst"
-    if ! scp -q -r $SSH_OPTS "$src" "$SSH_BASE$host:$dst"; then
+    echo "[SCP] Copying $src -> $host:$dst"
+    if ! scp -q -r $SSH_OPTS "$src"/* "$SSH_BASE$host:$dst"; then
         echo "[ERROR] Failed to copy $src to $host:$dst" >&2
         exit 1
     fi
