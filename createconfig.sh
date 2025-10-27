@@ -93,9 +93,8 @@ for host in "${HOSTS[@]}"; do
 done
 
 # Download RKE2 install script
-INSTALL_SCRIPT="./install.sh"
 echo "[DOWNLOAD] RKE2 install script"
-curl -sfL https://get.rke2.io -o "$INSTALL_SCRIPT"
+curl -sfL https://get.rke2.io -o "$WORK_DIR/install.sh"
 chmod +x "$INSTALL_SCRIPT"
 
 # Download kube-vip RBAC manifest
