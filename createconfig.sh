@@ -10,6 +10,10 @@ if [[ -z "$INSTALL_METHOD" ]]; then
   echo ""
   echo "[FATAL] variable INSTALL_METHOD is not defined in variables.env"
   exit 1
+elif [[ -z "$DEPLOY_RANCHER" ]]; then
+  echo ""
+  echo "[FATAL] variable DEPLOY_RANCHER is not defined in variables.env"
+  exit 1
 fi
 
 WORK_DIR="rke2_configs"

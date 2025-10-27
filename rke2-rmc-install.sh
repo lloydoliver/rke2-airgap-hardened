@@ -12,22 +12,20 @@ while IFS= read -r line; do
     HOSTS+=("$line")
 done < hosts.list
 
+ARTIFACT_DIR="rke2_artifacts"
+DIRS=( "/etc/rancher/rke2" "/var/lib/rancher/rke2/server/manifests" "/var/lib/rancher/rke2/agent/images" "/opt/rke2" )
+FILES=( "config.yaml" "registries.yaml" "rancher-psa.yaml" )
 HOST1="${HOSTS[0]}"
 HOST2="${HOSTS[1]}"
-HOST3="${HOSTS[2]}"
 HOST23=("${HOSTS[@]:1}") # Assumes hosts 2 & 3
+HOST3="${HOSTS[2]}"
 LOCAL_DIR="./rke2_configs"
-REMOTE_TMP="/tmp"
+MARKER_DIR="/etc/rancher/.install_markers"
 REMOTE_RKE2_DIR="/etc/rancher/rke2"
-FILES=( "config.yaml" "registries.yaml" "rancher-psa.yaml" )
-DIRS=( "/etc/rancher/rke2" "/var/lib/rancher/rke2/server/manifests" "/var/lib/rancher/rke2/agent/images" "/opt/rke2" )
-ARTIFACT_DIR="rke2_artifacts"
-
-SSH_BASE="$HOST_USER@"
-
-# SSH ControlMaster options
-SSH_OPTS="-o ControlMaster=auto -o ControlPersist=10m -o ControlPath=/tmp/ssh-%r@%h:%p"
+REMOTE_TMP="/tmp"
 RKE2_INSTALL_ARGS=""
+SSH_BASE="$HOST_USER@"
+SSH_OPTS="-o ControlMaster=auto -o ControlPersist=10m -o ControlPath=/tmp/ssh-%r@%h:%p"
 
 # Function to run SSH command with error handling
 ssh_exec() {
@@ -40,11 +38,28 @@ ssh_exec() {
     fi
 }
 
+# Mark step so we don't have to redo commands when re-running script
+mark_step() {
+    local host=$1
+    local step=$2
+    ssh_exec "$host" "sudo mkdir -p $MARKER_DIR && sudo touch $MARKER_DIR/$step"
+}
+
+# Check for step progress
+check_step() {
+    local host=$1
+    local step=$2
+    ssh_exec "$host" "[ -f $MARKER_DIR/$step ]" >/dev/null 2>&1
+}
+
 # Function to SCP files with error handling
 scp_copy() {
     local src=$1
     local host=$2
     local dst=$3
+
+    [[ $(check_step $host copy) ]] && echo "$host copy done. Skipping." && return
+
     echo "[SCP] Copying $src -> $host:$dst"
 
     if [[ -d "$src" ]]; then
@@ -60,14 +75,8 @@ scp_copy() {
             exit 1
         fi
     fi
-}
 
-# Function to check if host is already configured
-is_configured() {
-    local host=$1
-    echo "[INFO] Checking if $host is already configured"
-    ssh $SSH_OPTS "$SSH_BASE$host" "[ -f /etc/rancher/.configured ] && systemctl is-active --quiet rke2-server" >/dev/null 2>&1
-    return $?
+    mark_step "$host" copy
 }
 
 # Add NOPASSWD to suoders file to avoid having to constantly type passwords
@@ -106,10 +115,7 @@ remove_sudo_nopasswd() {
 prepare_host() {
     local host=$1
 
-    if is_configured "$host"; then
-        echo "[INFO] $host already configured. Skipping preparation."
-        return
-    fi
+    [[ $(check_step $host prepare) ]] && echo "$host prepare done. Skipping." && return
 
     add_sudo_nopasswd
 
@@ -131,28 +137,27 @@ prepare_host() {
     # Disable swap
     CMD+="sudo swapoff -a; sudo sed -i.bak '/ swap / s/^\(.*\)$/#\1/' /etc/fstab;"
     ssh_exec "$host" "$CMD"
+
+    mark_step "$host" prepare
 }
 
-# Loop over hosts for preparation
-for host in "${HOSTS[@]}"; do
-    [[ "$host" == *"-mgt-"* ]] && prepare_host "$host"
-done
+# Upload artifacts if using the TARBALL install method
+upload_rke2_artifacts() {
+    if [[ "$INSTALL_METHOD" != "TARBALL" ]]; then
+        return
+    fi
 
-if [[ "$INSTALL_METHOD" == "TARBALL" ]]; then
-    # Upload RKE2 artifacts to all hosts
     for host in "${HOSTS[@]}"; do
-        if is_configured "$host"; then
-            echo "[INFO] $host already configured. Skipping artifact upload."
-            continue
-        fi
+        # Skip if already RKE2 has been installed
+        [[ $(check_step $host install) ]] && echo "$host install done. Skipping artifact upload." && continue
 
         for local_file in "$ARTIFACT_DIR"/*; do
-            [ -f "$local_file" ] || continue  # skip directories
+            [ -f "$local_file" ] || continue
             filename=$(basename "$local_file")
-            local_size=$(stat -c%s "$local_file")  # get local file size
+            local_size=$(stat -c%s "$local_file")
 
-            # Check if file exists and has the same size on remote host
-            remote_size=$(ssh $SSH_OPTS "$SSH_BASE$host" "if [ -f \"$REMOTE_TMP/$filename\" ]; then stat -c%s \"$REMOTE_TMP/$filename\"; else echo 0; fi")
+            remote_size=$(ssh $SSH_OPTS "$SSH_BASE$host" \
+                "if [ -f \"$REMOTE_TMP/$filename\" ]; then stat -c%s \"$REMOTE_TMP/$filename\"; else echo 0; fi")
 
             if [ "$remote_size" -eq "$local_size" ]; then
                 echo "[INFO] $filename already exists on $host:$REMOTE_TMP with correct size. Skipping."
@@ -163,18 +168,15 @@ if [[ "$INSTALL_METHOD" == "TARBALL" ]]; then
             scp_copy "$local_file" "$host" "$REMOTE_TMP/"
         done
     done
-    RKE2_INSTALL_ARGS+="INSTALL_RKE2_ARTIFACT_PATH=/$REMOTE_TMP "
-fi
 
+    RKE2_INSTALL_ARGS+="INSTALL_RKE2_ARTIFACT_PATH=$REMOTE_TMP "
+}
 
 # Function to install RKE2 and perform CIS hardening
 install_rke2() {
     local host=$1
 
-    if is_configured "$host"; then
-        echo "[INFO] $host already configured. Skipping RKE2 installation."
-        return
-    fi
+    [[ $(check_step $host install) ]] && echo "$host install done. Skipping." && return
 
     # if 
     if [[ " $HOST1 $HOST2 $HOST3 " =~ " $host " ]]; then
@@ -199,35 +201,38 @@ install_rke2() {
     echo "[INFO] Starting RKE2"
     ssh_exec "$host" "sudo systemctl enable rke2-server.service && sudo systemctl start rke2-server.service"
 
-    # Create marker file
-    ssh_exec "$host" "sudo touch /etc/rancher/.configured"
-
     remove_sudo_nopasswd
+
+    mark_step "$host" install
 }
 
-# Install first node
-install_rke2 "$HOST1"
+# install CLI tooling
+install_kubectl() {
+    echo "[INFO] Installing kubectl"
+    local kubectl_url="https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+    curl -LO "$kubectl_url"
+    chmod +x kubectl
+    sudo mv kubectl /usr/local/bin/
+    alias k=kubectl
+}
 
-# Kubernetes tool installations on jumphost
-echo "[INFO] Installing kubectl"
-curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-chmod +x kubectl
-sudo mv kubectl /usr/local/bin/
-alias k=kubectl
-
-# Retrieve kubeconfig
-echo ""
-echo "[INFO] Copying Kubeconfig from $HOST1 to localhost"
-mkdir -p |/.kube/
-scp -q -r $SSH_OPTS "$HOST_USER@$HOST1:/etc/rancher/rke2/rke2.yaml" "localhost" "./rke2.yaml"
-sed "s/127.0.0.1/$CLUSTERNAME/" < ./rke2.yaml > ~/.kube/config
-chmod 600 ~/.kube/config
+# Copy kubeconfig from first master node to localhost
+retrieve_kubeconfig() {
+    echo "[INFO] Copying Kubeconfig from $HOST1 to localhost"
+    mkdir -p ~/.kube/
+    scp -q -r $SSH_OPTS "$HOST_USER@$HOST1:/etc/rancher/rke2/rke2.yaml" ./rke2.yaml
+    sed "s/127.0.0.1/$CLUSTERNAME/" < ./rke2.yaml > ~/.kube/config
+    chmod 600 ~/.kube/config
+    export KUBECONFIG=~/.kube/config
+}
 
 # Function used to check for nodes to be ready before moving on to the next step
 wait_for_nodes_ready() {
     local interval=5  # seconds between checks
     local timeout=300 # maximum wait time in seconds
     local elapsed=0
+
+    echo "[INFO] Checking if master nodes are ready"
 
     while true; do
         not_ready=$(kubectl get nodes --no-headers | awk '$2 != "Ready" {print $1}')
@@ -247,54 +252,80 @@ wait_for_nodes_ready() {
     done
 }
 
-wait_for_nodes_ready
+# Close control master SSH session to host
+close_ssh_connection() {
+    local host=$1
+    echo "[INFO] Closing SSH connection to $host"
+    ssh $SSH_OPTS -O exit "$HOST_USER@$host" 2>/dev/null || true
+}
 
-# Install remaining master nodes
-for host in "${HOST23[@]}"; do
+# Install Helm on local machine
+install_helm() {
+    echo "[INFO] Installing Helm"
+    curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+    chmod 700 get_helm.sh
+    ./get_helm.sh
+}
+
+# Deploy cert-manager to cluster
+install_cert_manager() {
+    echo "[INFO] Installing Cert-Manager"
+    helm repo add jetstack https://charts.jetstack.io
+    helm repo update
+    kubectl create namespace cert-manager || true
+    kubectl apply -f "https://github.com/cert-manager/cert-manager/releases/download/$CERT_MANAGER_VERSION/cert-manager.crds.yaml"
+    helm upgrade --install cert-manager jetstack/cert-manager --namespace cert-manager --version "$CERT_MANAGER_VERSION"
+    kubectl rollout status deployment -n cert-manager cert-manager
+    kubectl rollout status deployment -n cert-manager cert-manager-webhook
+}
+
+# Deploy rancher to cluster
+install_rancher() {
+    echo "[INFO] Installing Rancher"
+    helm repo add rancher https://releases.rancher.com/server-charts/latest
+    helm repo update
+    kubectl create namespace cattle-system || true
+    helm upgrade --install rancher rancher/rancher \
+        --namespace cattle-system \
+        --set bootstrapPassword="$RANCHER_BOOTSTRAP_PASSWORD" \
+        --set hostname="$CLUSTERNAME"
+    kubectl rollout status deployment/rancher -n cattle-system
+}
+
+deploy_rancher() {
+    if [[ "$DEPLOY_RANCHER" == "true" ]]; then
+        install_helm
+        install_cert_manager
+        install_rancher
+        echo "[INFO] Rancher deployment complete."
+        kubectl get nodes
+    fi
+}
+
+# Install master nodes
+for host in "$HOST1" "$HOST2" "$HOST3"; do
+    prepare_host $host
+    upload_rke2_artifacts $host
     install_rke2 "$host"
+    close_ssh_connection
+    echo ""
+    echo "[INFO]RKE2 deployment complete on $host"
 done
 
-# Iterate over the hosts.list file, and install RKE2 on worker nodes
-INSTALLED=("$HOST1" "${HOST23[@]}")
+install_kubectl
+retrieve_kubeconfig
+wait_for_nodes_ready
+deploy_rancher
+
+# Install workers
 for host in "${HOSTS[@]}"; do
-    # Skip if already installed
-    if [[ "${INSTALLED[*]}" == "$host" ]]; then
+    if [[ "$host" == "$HOST1" || "$host" == "$HOST2" || "$host" == "$HOST3" ]]; then
         continue
     fi
+    prepare_host $host
+    upload_rke2_artifacts $host
     install_rke2 "$host"
+    close_ssh_connection
+    echo ""
+    echo "[INFO]RKE2 deployment complete on $host"
 done
-
-# Close all persistent SSH ControlMaster connections
-echo "[INFO] Closing all persistent SSH connections"
-for host in "${HOSTS[@]}"; do
-    ssh -O exit $SSH_OPTS "$HOST_USER@$host" 2>/dev/null || true
-done
-
-echo "[INFO] Installing Helm"
-curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
-chmod 700 get_helm.sh
-./get_helm.sh
-
-# Install Cert-Manager
-echo "[INFO] Installing Cert-Manager"
-helm repo add jetstack https://charts.jetstack.io
-helm repo update
-kubectl create namespace cert-manager
-kubectl apply -f "https://github.com/cert-manager/cert-manager/releases/download/$CERT_MANAGER_VERSION/cert-manager.crds.yaml"
-helm upgrade --install cert-manager jetstack/cert-manager --namespace cert-manager --version $CERT_MANAGER_VERSION
-kubectl rollout status deployment -n cert-manager cert-manager
-kubectl rollout status deployment -n cert-manager cert-manager-webhook
-
-# Install Rancher
-echo "[INFO] Installing Rancher"
-helm repo add rancher https://releases.rancher.com/server-charts/latest
-helm repo update
-kubectl create namespace cattle-system
-helm upgrade --install rancher rancher/rancher \
-  --namespace cattle-system \
-  --set bootstrapPassword="$RANCHER_BOOTSTRAP_PASSWORD" \
-  --set hostname=$CLUSTERNAME
-kubectl rollout status deployment/rancher -n cattle-system
-
-echo "[INFO] RKE2 Cluster deployment complete."
-kubectl get nodes
