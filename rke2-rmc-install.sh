@@ -32,7 +32,7 @@ ssh_exec() {
     local host=$1
     local cmd=$2
     echo "[SSH] Executing on $host: $cmd"
-    if ! ssh $SSH_OPTS "$SSH_BASE$host" "$cmd"; then
+    if ! ssh -t $SSH_OPTS "$SSH_BASE$host" "$cmd"; then
         echo "[ERROR] Command failed on $host: $cmd" >&2
         exit 1
     fi
@@ -44,7 +44,7 @@ scp_copy() {
     local host=$2
     local dst=$3
     echo "[SCP] Copying $src -> $host:$dst"
-    if ! scp -r $SSH_OPTS "$src" "$SSH_BASE$host:$dst"; then
+    if ! scp -q -r $SSH_OPTS "$src"/* "$SSH_BASE$host:$dst"; then
         echo "[ERROR] Failed to copy $src to $host:$dst" >&2
         exit 1
     fi
@@ -53,7 +53,9 @@ scp_copy() {
 # Function to check if host is already configured
 is_configured() {
     local host=$1
-    ssh_exec "$host" "[ -f /etc/rancher/.configured ] && systemctl is-active --quiet rke2-server" && return 0 || return 1
+    echo "[INFO] Checking if $host is already configured"
+    ssh $SSH_OPTS "$SSH_BASE$host" "[ -f /etc/rancher/.configured ] && systemctl is-active --quiet rke2-server" >/dev/null 2>&1
+    return $?
 }
 
 # Prepare management hosts
