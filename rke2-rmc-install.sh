@@ -304,10 +304,10 @@ deploy_rancher() {
 
 # Install master nodes
 for host in "$HOST1" "$HOST2" "$HOST3"; do
-    prepare_host $host
-    upload_rke2_artifacts $host
+    prepare_host "$host"
+    upload_rke2_artifacts "$host"
     install_rke2 "$host"
-    close_ssh_connection
+    close_ssh_connection "$host"
     echo ""
     echo "[INFO]RKE2 deployment complete on $host"
 done
@@ -322,10 +322,10 @@ for host in "${HOSTS[@]}"; do
     if [[ "$host" == "$HOST1" || "$host" == "$HOST2" || "$host" == "$HOST3" ]]; then
         continue
     fi
-    prepare_host $host
-    upload_rke2_artifacts $host
+    prepare_host "$host"
+    upload_rke2_artifacts "$host"
     install_rke2 "$host"
-    close_ssh_connection
+    close_ssh_connection "$host"
     echo ""
     echo "[INFO]RKE2 deployment complete on $host"
 done
