@@ -38,8 +38,8 @@ export HOST2="${HOSTS[1]}"
 export HOST3="${HOSTS[2]}"
 export HOST23="${HOSTS[1]} ${HOSTS[2]}"
 
-# SSH options with ControlMaster for reuse
-SSH_OPTS="-o StrictHostKeyChecking=no -o ControlMaster=auto -o ControlPersist=10m -o ControlPath=/tmp/ssh-%r@%h:%p"
+# SSH options 
+SSH_OPTS="-o StrictHostKeyChecking=no"
 
 SSH_BASE="$HOST_USER@"
 
