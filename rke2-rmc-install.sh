@@ -13,8 +13,8 @@ while IFS= read -r line; do
 done < hosts.list
 
 HOST1="${HOSTS[0]}"
-HOST1="${HOSTS[1]}"
-HOST1="${HOSTS[2]}"
+HOST2="${HOSTS[1]}"
+HOST3="${HOSTS[2]}"
 HOST23=("${HOSTS[@]:1}") # Assumes hosts 2 & 3
 LOCAL_DIR="./rke2_configs"
 REMOTE_TMP="/tmp"
