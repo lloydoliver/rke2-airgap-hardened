@@ -12,14 +12,14 @@ mkdir -p "$WORK_DIR"
 HOSTS=()
 
 # Generate management hosts
-for i in $(seq 1 "$MGT_NODE_COUNT"); do
-    HOSTS+=("${HOST_PREFIX}-mgt-${i}.${DOMAIN_NAME}")
+for i in $(seq -f "%02g" 1 "$MGT_NODE_COUNT"); do
+    HOSTS+=("${MGT_HOST_PREFIX}${i}.${DOMAIN_NAME}")
 done
 
 # Generate worker hosts
 if (( WKR_NODE_COUNT > 0 )); then
-    for i in $(seq 1 "$WKR_NODE_COUNT"); do
-        HOSTS+=("${HOST_PREFIX}-wkr-${i}.${DOMAIN_NAME}")
+    for i in $(seq -f "%02g" 1 "$WKR_NODE_COUNT"); do
+        HOSTS+=("${WKR_HOST_PREFIX}${i}.${DOMAIN_NAME}")
     done
 fi
 
