@@ -68,6 +68,38 @@ is_configured() {
     return $?
 }
 
+# Add NOPASSWD to suoders file to avoid having to constantly type passwords
+add_sudo_nopasswd() {
+    local user=$HOST_USER
+    local sudoers_line="${user} ALL=(ALL) NOPASSWD:ALL"
+    local sudoers_file="/etc/sudoers.d/$user"
+
+    ssh $SSH_OPTS "$SSH_BASE$host" "bash -c '
+        if sudo grep -q \"^${user} \" /etc/sudoers; then
+            echo \"User ${user} already exists in sudoers.\"
+        else
+            echo \"$sudoers_line\" | sudo tee \"$sudoers_file\" > /dev/null
+            sudo chmod 440 \"$sudoers_file\"
+            echo \"User ${user} added to sudoers with NOPASSWD.\"
+        fi
+    '"
+}
+
+# Remove NOPASSWD after installation
+remove_sudo_nopasswd() {
+    local user=$HOST_USER
+    local sudoers_file="/etc/sudoers.d/$user"
+
+    ssh $SSH_OPTS "$SSH_BASE$host" "bash -c '
+        if [ -f \"$sudoers_file\" ]; then
+            sudo rm -f \"$sudoers_file\"
+            echo \"User ${user} removed from sudoers NOPASSWD.\"
+        else
+            echo \"No sudoers entry found for user ${user}.\"
+        fi
+    '"
+}
+
 # Prepare management hosts
 prepare_host() {
     local host=$1
@@ -76,6 +108,8 @@ prepare_host() {
         echo "[INFO] $host already configured. Skipping preparation."
         return
     fi
+
+    add_sudo_nopasswd
 
     scp_copy "$LOCAL_DIR/" "$host" "$REMOTE_TMP/"
     scp_copy ./rancher-psa.yaml "$host" "$REMOTE_TMP/"
@@ -136,10 +170,14 @@ install_rke2() {
 
     # if 
     if [[ " $HOST1 $HOST2 $HOST3 " =~ " $host " ]]; then
+      echo ""
       echo "[INFO] Installing master node on $host"
+      echo "-- Installation args = $RKE2_INSTALL_ARGS"
       ssh_exec "$host" "sudo $RKE2_INSTALL_ARGS $REMOTE_TMP/install.sh"
     else
-      echo [INFO] Installing worker node on $host
+      echo ""
+      echo "[INFO] Installing worker node on $host"
+      echo "-- Installation args = $RKE2_INSTALL_ARGS"
       ssh_exec "$host" "sudo INSTALL_RKE2_TYPE="agent" $RKE2_INSTALL_ARGS $REMOTE_TMP/install.sh"
     fi
     
@@ -155,15 +193,53 @@ install_rke2() {
 
     # Create marker file
     ssh_exec "$host" "sudo touch /etc/rancher/.configured"
+
+    remove_sudo_nopasswd
 }
 
 # Install first node
 install_rke2 "$HOST1"
 
+# Kubernetes tool installations on jumphost
+echo "[INFO] Installing kubectl"
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+chmod +x kubectl
+sudo mv kubectl /usr/local/bin/
+alias k=kubectl
+
 # Retrieve kubeconfig
-scp_copy "$HOST1:/etc/rancher/rke2/rke2.yaml" "localhost" "./rke2.yaml"
+echo ""
+echo "[INFO] Copying Kubeconfig from $HOST1 to localhost"
+mkdir -p |/.kube/
+scp -q -r $SSH_OPTS "$HOST_USER@$HOST1:/etc/rancher/rke2/rke2.yaml" "localhost" "./rke2.yaml"
 sed "s/127.0.0.1/$CLUSTERNAME/" < ./rke2.yaml > ~/.kube/config
 chmod 600 ~/.kube/config
+
+# Function used to check for nodes to be ready before moving on to the next step
+wait_for_nodes_ready() {
+    local interval=5  # seconds between checks
+    local timeout=300 # maximum wait time in seconds
+    local elapsed=0
+
+    while true; do
+        not_ready=$(kubectl get nodes --no-headers | awk '$2 != "Ready" {print $1}')
+        if [ -z "$not_ready" ]; then
+            echo "All nodes are Ready."
+            break
+        else
+            echo "Waiting for nodes to be Ready: $not_ready"
+        fi
+
+        sleep $interval
+        elapsed=$((elapsed + interval))
+        if [ $elapsed -ge $timeout ]; then
+            echo "Timeout waiting for nodes to be Ready."
+            exit 1
+        fi
+    done
+}
+
+wait_for_nodes_ready
 
 # Install remaining master nodes
 for host in "${HOST23[@]}"; do
@@ -185,13 +261,6 @@ echo "[INFO] Closing all persistent SSH connections"
 for host in "${HOSTS[@]}"; do
     ssh -O exit $SSH_OPTS "$HOST_USER@$host" 2>/dev/null || true
 done
-
-# Kubernetes tool installations on jumphost
-echo "[INFO] Installing kubectl"
-curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-chmod +x kubectl
-sudo mv kubectl /usr/local/bin/
-alias k=kubectl
 
 echo "[INFO] Installing Helm"
 curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
