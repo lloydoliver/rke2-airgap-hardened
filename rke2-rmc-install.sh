@@ -229,6 +229,7 @@ install_kubectl() {
         sudo mv kubectl /usr/local/bin/
     else
       echo "[INFO] kubectl already installed"
+    fi
 }
 
 # Copy kubeconfig from first master node to localhost
