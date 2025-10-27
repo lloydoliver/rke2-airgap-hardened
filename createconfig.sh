@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Check if variables.env file exists.
+if [ ! -e ./variables.env ]; then
+  echo
+  echo "[ERROR] variables.env file is missing. Copy from the examples folder and adjust to your environment."
+  echo
+  exit 1
+fi
+
 # Load environment variables
 set -a
 source variables.env
