@@ -44,9 +44,19 @@ scp_copy() {
     local host=$2
     local dst=$3
     echo "[SCP] Copying $src -> $host:$dst"
-    if ! scp -q -r $SSH_OPTS "$src"/* "$SSH_BASE$host:$dst"; then
-        echo "[ERROR] Failed to copy $src to $host:$dst" >&2
-        exit 1
+
+    if [[ -d "$src" ]]; then
+        # Directory: copy contents, preserve structure
+        if ! scp -q -r $SSH_OPTS "$src"/* "$SSH_BASE$host:$dst"; then
+            echo "[ERROR] Failed to copy directory $src to $host:$dst" >&2
+            exit 1
+        fi
+    else
+        # Single file
+        if ! scp -q $SSH_OPTS "$src" "$SSH_BASE$host:$dst"; then
+            echo "[ERROR] Failed to copy file $src to $host:$dst" >&2
+            exit 1
+        fi
     fi
 }
 
