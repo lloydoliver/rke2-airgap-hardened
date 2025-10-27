@@ -157,8 +157,10 @@ upload_rke2_artifacts() {
     fi
 
     # Skip if already RKE2 has been installed
-    [[ $(check_step $host install) ]] && echo "$host install done. Skipping artifact upload." && continue
-
+    if check_step "$host" install; then
+        echo "[INFO] $host install done. Skipping."
+        return
+    fi
     for local_file in "$ARTIFACT_DIR"/*; do
         [ -f "$local_file" ] || continue
         filename=$(basename "$local_file")
@@ -219,12 +221,14 @@ install_rke2() {
 
 # install CLI tooling
 install_kubectl() {
-    echo "[INFO] Installing kubectl"
-    local kubectl_url="https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-    curl -LO "$kubectl_url"
-    chmod +x kubectl
-    sudo mv kubectl /usr/local/bin/
-    alias k=kubectl
+    if [[ ! -f /usr/local/bin/kubectl ]]; then
+        echo "[INFO] Installing kubectl"
+        local kubectl_url="https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+        curl -LO "$kubectl_url"
+        chmod +x kubectl
+        sudo mv kubectl /usr/local/bin/
+    else
+      echo "[INFO] kubectl already installed"
 }
 
 # Copy kubeconfig from first master node to localhost
@@ -272,10 +276,14 @@ close_ssh_connection() {
 
 # Install Helm on local machine
 install_helm() {
-    echo "[INFO] Installing Helm"
-    curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
-    chmod 700 get_helm.sh
-    ./get_helm.sh
+    if command -v helm >/dev/null 2>&1; then
+        echo "[INFO] Helm is already installed."
+    else
+        echo "[INFO] Helm not found. Installing..."
+        curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+        chmod 700 get_helm.sh
+        ./get_helm.sh        
+    fi
 }
 
 # Deploy cert-manager to cluster
