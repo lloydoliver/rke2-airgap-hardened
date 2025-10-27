@@ -95,7 +95,7 @@ done
 # Download RKE2 install script
 echo "[DOWNLOAD] RKE2 install script"
 curl -sfL https://get.rke2.io -o "$WORK_DIR/install.sh"
-chmod +x "$INSTALL_SCRIPT"
+chmod +x "$WORK_DIR/install.sh"
 
 # Download kube-vip RBAC manifest
 echo "[DOWNLOAD] kube-vip RBAC manifest"
