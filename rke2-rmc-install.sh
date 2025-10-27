@@ -147,12 +147,18 @@ if [[ "$INSTALL_METHOD" == "TARBALL" ]]; then
         fi
 
         for local_file in "$ARTIFACT_DIR"/*; do
+            [ -f "$local_file" ] || continue  # skip directories
             filename=$(basename "$local_file")
+            local_size=$(stat -c%s "$local_file")  # get local file size
+
             # Check if file exists and has the same size on remote host
-            if ssh $SSH_OPTS "$SSH_BASE$host" "[ -f \"$REMOTE_TMP/$filename\" ] && [ \"\$(stat -c%s \"$REMOTE_TMP/$filename\")\" -eq \"\$(stat -c%s \"$local_file\")\" ]"; then
+            remote_size=$(ssh $SSH_OPTS "$SSH_BASE$host" "if [ -f \"$REMOTE_TMP/$filename\" ]; then stat -c%s \"$REMOTE_TMP/$filename\"; else echo 0; fi")
+
+            if [ "$remote_size" -eq "$local_size" ]; then
                 echo "[INFO] $filename already exists on $host:$REMOTE_TMP with correct size. Skipping."
                 continue
             fi
+
             echo "[SCP] Uploading $filename to $host:$REMOTE_TMP"
             scp_copy "$local_file" "$host" "$REMOTE_TMP/"
         done
