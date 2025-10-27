@@ -14,6 +14,12 @@ set -a
 source variables.env
 set +a
 
+if [[ "$INSTALL_METHOD" != "TARBALL" ]]; then
+    echo ""
+    echo "[FATAL] Installtion method is not set to TARBALL. Use of this script is not required."
+    exit 1
+fi
+
 ARTIFACT_DIR="rke2_artifacts"
 mkdir -p "$ARTIFACT_DIR"
 cd "$ARTIFACT_DIR"

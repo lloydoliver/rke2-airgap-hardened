@@ -25,6 +25,7 @@ SSH_BASE="$HOST_USER@"
 
 # SSH ControlMaster options
 SSH_OPTS="-o ControlMaster=auto -o ControlPersist=10m -o ControlPath=/tmp/ssh-%r@%h:%p"
+RKE2_INSTALL_ARGS=""
 
 # Function to run SSH command with error handling
 ssh_exec() {
@@ -93,24 +94,27 @@ for host in "${HOSTS[@]}"; do
     scp_copy "install.sh" "$host" "~/suse/rancher"
 done
 
-# Upload RKE2 artifacts to all hosts
-for host in "${HOSTS[@]}"; do
-    if is_configured "$host"; then
-        echo "[INFO] $host already configured. Skipping artifact upload."
-        continue
-    fi
-
-    for local_file in "$ARTIFACT_DIR"/*; do
-        filename=$(basename "$local_file")
-        # Check if file exists and has the same size on remote host
-        if ssh_exec "$host" "[ -f $REMOTE_TMP/$filename ] && [ \$(stat -c%s $REMOTE_TMP/$filename) -eq \$(stat -c%s $local_file) ]"; then
-            echo "[INFO] $filename already exists on $host:$REMOTE_TMP with correct size. Skipping."
+if [[ "$INSTALL_METHOD" == "TARBALL" ]]; then
+    # Upload RKE2 artifacts to all hosts
+    for host in "${HOSTS[@]}"; do
+        if is_configured "$host"; then
+            echo "[INFO] $host already configured. Skipping artifact upload."
             continue
         fi
-        echo "[SCP] Uploading $filename to $host:$REMOTE_TMP"
-        scp_copy "$local_file" "$host" "$REMOTE_TMP/"
+
+        for local_file in "$ARTIFACT_DIR"/*; do
+            filename=$(basename "$local_file")
+            # Check if file exists and has the same size on remote host
+            if ssh_exec "$host" "[ -f $REMOTE_TMP/$filename ] && [ \$(stat -c%s $REMOTE_TMP/$filename) -eq \$(stat -c%s $local_file) ]"; then
+                echo "[INFO] $filename already exists on $host:$REMOTE_TMP with correct size. Skipping."
+                continue
+            fi
+            echo "[SCP] Uploading $filename to $host:$REMOTE_TMP"
+            scp_copy "$local_file" "$host" "$REMOTE_TMP/"
+        done
     done
-done
+    RKE2_INSTALL_ARGS+="INSTALL_RKE2_ARTIFACT_PATH=/$REMOTE_TMP "
+fi
 
 # Reboot hosts
 for host in "${HOSTS[@]}"; do
@@ -133,10 +137,10 @@ install_rke2() {
     # if 
     if [[ " $HOST1 $HOST2 $HOST3 " =~ " $host " ]]; then
       echo "[INFO] Installing master node on $host"
-      ssh_exec "$host" "sudo INSTALL_RKE2_ARTIFACT_PATH=/$REMOTE_TMP ~/suse/rancher/install.sh"
+      ssh_exec "$host" "sudo $RKE2_INSTALL_ARGS ~/suse/rancher/install.sh"
     else
       echo [INFO] Installing worker node on $host
-      ssh_exec "$host" "sudo INSTALL_RKE2_TYPE="agent" INSTALL_RKE2_ARTIFACT_PATH=/$REMOTE_TMP ~/suse/rancher/install.sh"
+      ssh_exec "$host" "sudo INSTALL_RKE2_TYPE="agent" $RKE2_INSTALL_ARGS ~/suse/rancher/install.sh"
     fi
     
     echo "[INFO] Setting kernel parameters"

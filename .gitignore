@@ -8,4 +8,5 @@ rke2.yaml
 hosts.list
 rke2_artifacts/
 rke2_configs/
-./variables.env
+variables.env
+!/examples

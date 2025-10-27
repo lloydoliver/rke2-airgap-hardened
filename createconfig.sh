@@ -6,6 +6,12 @@ set -a
 source variables.env
 set +a
 
+if [[ -z "$INSTALL_METHOD" ]]; then
+  echo ""
+  echo "[FATAL] variable INSTALL_METHOD is not defined in variables.env"
+  exit 1
+fi
+
 WORK_DIR="rke2_configs"
 mkdir -p "$WORK_DIR"
 
