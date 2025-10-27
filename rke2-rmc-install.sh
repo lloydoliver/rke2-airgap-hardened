@@ -67,7 +67,7 @@ prepare_host() {
         return
     fi
 
-    scp_copy "$LOCAL_DIR/*" "$host" "$REMOTE_TMP/"
+    scp_copy "$LOCAL_DIR"/* "$host" "$REMOTE_TMP/"
     scp_copy ./rancher-psa.yaml "$host" "$REMOTE_TMP/"
 
     CMD=""
