@@ -44,7 +44,7 @@ scp_copy() {
     local host=$2
     local dst=$3
     echo "[SCP] Copying $src -> $host:$dst"
-    if ! scp -q -r $SSH_OPTS "$src"/* "$SSH_BASE$host:$dst"; then
+    if ! scp -q -r $SSH_OPTS "$src" "$SSH_BASE$host:$dst"; then
         echo "[ERROR] Failed to copy $src to $host:$dst" >&2
         exit 1
     fi
@@ -67,7 +67,8 @@ prepare_host() {
         return
     fi
 
-    scp_copy "$LOCAL_DIR/" "$host" "$REMOTE_TMP/"
+    scp_copy "$LOCAL_DIR/*" "$host" "$REMOTE_TMP/"
+    scp_copy ./rancher-psa.yaml "$host" "$REMOTE_TMP/"
 
     CMD=""
     for dir in "${DIRS[@]}"; do
