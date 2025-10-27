@@ -102,11 +102,6 @@ for host in "${HOSTS[@]}"; do
     [[ "$host" == *"-mgt-"* ]] && prepare_host "$host"
 done
 
-# Copy install script to all hosts
-for host in "${HOSTS[@]}"; do
-    scp_copy "install.sh" "$host" "~/suse/rancher"
-done
-
 if [[ "$INSTALL_METHOD" == "TARBALL" ]]; then
     # Upload RKE2 artifacts to all hosts
     for host in "${HOSTS[@]}"; do
@@ -118,7 +113,7 @@ if [[ "$INSTALL_METHOD" == "TARBALL" ]]; then
         for local_file in "$ARTIFACT_DIR"/*; do
             filename=$(basename "$local_file")
             # Check if file exists and has the same size on remote host
-            if ssh_exec "$host" "[ -f $REMOTE_TMP/$filename ] && [ \$(stat -c%s $REMOTE_TMP/$filename) -eq \$(stat -c%s $local_file) ]"; then
+            if ssh $SSH_OPTS "$SSH_BASE$host" "[ -f $REMOTE_TMP/$filename ] && [ \$(stat -c%s $REMOTE_TMP/$filename) -eq \$(stat -c%s $local_file) ]"; then
                 echo "[INFO] $filename already exists on $host:$REMOTE_TMP with correct size. Skipping."
                 continue
             fi
@@ -129,14 +124,6 @@ if [[ "$INSTALL_METHOD" == "TARBALL" ]]; then
     RKE2_INSTALL_ARGS+="INSTALL_RKE2_ARTIFACT_PATH=/$REMOTE_TMP "
 fi
 
-# Reboot hosts
-for host in "${HOSTS[@]}"; do
-    ssh_exec "$host" "sudo reboot"
-done
-
-# Wait for reboots
-echo "[INFO] Waiting 60s for hosts to reboot..."
-sleep 60
 
 # Function to install RKE2 and perform CIS hardening
 install_rke2() {
@@ -150,10 +137,10 @@ install_rke2() {
     # if 
     if [[ " $HOST1 $HOST2 $HOST3 " =~ " $host " ]]; then
       echo "[INFO] Installing master node on $host"
-      ssh_exec "$host" "sudo $RKE2_INSTALL_ARGS ~/suse/rancher/install.sh"
+      ssh_exec "$host" "sudo $RKE2_INSTALL_ARGS $REMOTE_TMP/install.sh"
     else
       echo [INFO] Installing worker node on $host
-      ssh_exec "$host" "sudo INSTALL_RKE2_TYPE="agent" $RKE2_INSTALL_ARGS ~/suse/rancher/install.sh"
+      ssh_exec "$host" "sudo INSTALL_RKE2_TYPE="agent" $RKE2_INSTALL_ARGS $REMOTE_TMP/install.sh"
     fi
     
     echo "[INFO] Setting kernel parameters"
