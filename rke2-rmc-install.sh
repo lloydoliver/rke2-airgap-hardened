@@ -58,11 +58,6 @@ scp_copy() {
     local host=$2
     local dst=$3
 
-    if check_step "$host" copy; then
-        echo "[INFO] $host copy done. Skipping."
-        return
-    fi
-
     echo "[SCP] Copying $src -> $host:$dst"
 
     if [[ -d "$src" ]]; then
@@ -79,7 +74,6 @@ scp_copy() {
         fi
     fi
 
-    mark_step "$host" copy
 }
 
 # Add NOPASSWD to suoders file to avoid having to constantly type passwords
